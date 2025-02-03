@@ -1,6 +1,6 @@
 import math
 import random
-# this is a just a value(not a neuron or node) but with a bunch of functionality, something which we store inside the neuron/node. 
+# this is a just a value(not a neuron or node) but with a bunch of functionality, something which we store inside the neur on/node. 
 class value:
     # "children" will contain children nodes which formed this parent node, TYPE:- tuple
     # "op" is the operation which was performed between the children to form the current node
@@ -40,6 +40,7 @@ class value:
     
     def __rmul__(self,other): #same as abv but with multiplication
         return self*other
+
     def __rsub__(self,other):
         return self-other
 
@@ -48,17 +49,19 @@ class value:
         t = (math.exp(2*n)-1)/(math.exp(2*n)+1)
         out = value(t,(self,))
         def backward():
-            self.grad += (1-t**2) * out.grad
+            self.grad += (1-t**2) * out.grad # diffrentiation of tan(x) = 1-( tan(x) )^2
         out.backward = backward
         return out
 
-    def exp(self):
+    def exp(self): # computes e^x
         x = self.data
         out = value(math.exp(x),(self,))
 
         def backward():
             self.grad += out.data*out.grad
-            out.backward = backward
+        out.backward = backward
+        return out
+            
     def __pow__(self,other):
         assert isinstance(other,(int,float))
         out = value(self.data**other,(self,))
@@ -68,13 +71,15 @@ class value:
         out.backward = backward
         return out
         
-    def __truediv__(self,other):
+    def __truediv__(self,other): # DEV_NOTE:- test for rtruediv
         return self * other**-1
 
     def auto_backpropogate(self):
         topo = []
         visited = set()
-        #topological sort(= in a directed asyclic graph(DAG) we arrange all the nodes in a way that if a arrow is going from u to v, u should come first in the sort)
+        ''' topological sort reversed =  we arrange all the nodes in a way that front node of the neural net comes first in the sort, children of the first node 
+                                         comes after that and so on, coz first we want to calculate the gradient of the first node and based on that calculate the 
+                                         gradient of it's children node/neuron'''
         def build_topo(v):
             if v not in visited:
                 visited.add(v)
@@ -114,11 +119,11 @@ class value:
 
 class neuron:
     def __init__(self,no_of_input):
-        self.w = [value(random.uniform(-1,1)) for _ in range(no_of_input)]       
+        self.w = [ value(random.uniform(-1,1)) for _ in range(no_of_input) ]       
         self.b = value(random.uniform(-1,1)) 
     
     def __call__(self,x):
-        z = sum((Wi*Xi for Wi,Xi in zip(self.w,x)),self.b)
+        z = sum( (Wi*Xi for Wi,Xi in zip(self.w,x)) , self.b)
         out = z.tanh()
         return out
     def parameters(self):
@@ -147,7 +152,7 @@ class mlp:
     def parameters(self):
         return[p for layer in self.layers for p in layer.parameters()] 
 # making the model
-n = mlp(3,[4,4,1])
+n = mlp(3,[4,4,1]) # this is our Neural network
 
 #dataset
 x = [
@@ -170,7 +175,7 @@ for k in range(100):
     loss.auto_backpropogate()
     #update
     for p in n.parameters():
-        p.data -= 0.05 * p.grad
+        p.data -= 0.05 * p.grad # 0.5 is the learning rate of the model
     print(k,loss)
 
 print(y_pred)
